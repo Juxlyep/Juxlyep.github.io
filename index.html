@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyEarth - 次世代地球科学学習プラットフォーム</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #3498db; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; color: var(--primary); background: #f9f9f9; }
+        header { background: white; padding: 1rem 2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--accent); }
+        .hero { text-align: center; padding: 4rem 1rem; background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%); color: white; }
+        .search-container { margin-top: 2rem; }
+        input[type="text"] { width: 60%; max-width: 500px; padding: 12px 25px; border-radius: 25px; border: none; font-size: 1rem; outline: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; padding: 3rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        footer { text-align: center; padding: 2rem; font-size: 0.8rem; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">StudyEarth</div>
+    <nav style="font-size: 0.9rem;">教材ライブラリ | 観測データ | お問い合わせ</nav>
+</header>
+
+<div class="hero">
+    <h1>地球の未来を、データで解き明かす。</h1>
+    <p>StudyEarthは、学生のための地球科学リサーチポータルです。</p>
+    <div class="search-container">
+        <!-- ここに合言葉を打つ -->
+        <input type="text" id="db-query" placeholder="研究アーカイブを検索..." onkeydown="if(event.key==='Enter')executeSecureSearch()">
+    </div>
+</div>
+
+<div class="grid">
+    <div class="card"><h3>地質学の基礎</h3><p>プレートテクトニクスと火山活動のメカニズムについて学びます。</p></div>
+    <div class="card"><h3>気象観測</h3><p>最新の衛星データに基づいた気候変動のシミュレーション。</p></div>
+    <div class="card"><h3>天文学</h3><p>深宇宙探査と太陽系の成り立ちに関する最新の研究報告。</p></div>
+</div>
+
+<footer>
+    &copy; 2026 StudyEarth Project. All Rights Reserved. (No License / All Rights Reserved)
+</footer>
+
+<script>
+    // 🛡️ ここに難読化したコードを仕込んでいく
+    async function executeSecureSearch() {
+        const input = document.getElementById('db-query').value;
+        if(!input) return;
+
+        // SHA-256ハッシュ化（AI対策の数学的防御）
+        const encoder = new TextEncoder();
+        const data = encoder.encode(input);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // 🌟 ここに合言葉のハッシュ値を置く
+        // 例: 'sky777' のハッシュ値
+        const targetHash = 'e93149539744c79435061614777e48b991b1574a44f77c385732ef17765ec17b';
+
+        if (hashHex === targetHash) {
+            // 認証成功時：さらに難読化されたリダイレクト処理
+            console.log("Authentication successful. Loading encrypted module...");
+            window.location.href = "research.html";
+        } else {
+            // 失敗時：普通のGoogle検索に飛ばして偽装
+            window.location.href = "https://www.google.com/search?q=" + encodeURIComponent(input + " site:edu");
+        }
+    }
+</script>
+
+</body>
+</html>
