@@ -3,116 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juxlyep</title>
+    <title>Juxlyep - 自由な百科事典</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* Wikipediaの基本設計を忠実に再現 */
-        :root {
-            --link-color: #0645ad;
-            --border-color: #a2a9b1;
-            --bg-gray: #f6f6f6;
-        }
+        :root { --link: #0645ad; --border: #a2a9b1; --bg: #f6f6f6; }
+        body { margin: 0; font-family: sans-serif; font-size: 14px; line-height: 1.6; background: var(--bg); display: flex; }
+        
+        /* サイドバー */
+        nav { width: 160px; padding: 15px; flex-shrink: 0; }
+        .logo { font-family: serif; font-size: 26px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+        nav ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border); }
+        nav li { padding: 5px 0; font-size: 12px; }
+        nav a { text-decoration: none; color: var(--link); cursor: pointer; }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: sans-serif;
-            font-size: 14px;
-            line-height: 1.6;
-            background-color: var(--bg-gray);
-            display: flex;
-        }
-
-        /* 左メニュー */
-        nav {
-            width: 160px;
-            padding: 15px;
-            flex-shrink: 0;
-        }
-
-        .logo {
-            font-family: serif;
-            font-size: 24px;
-            text-align: center;
-            margin-bottom: 20px;
-            color: #000;
-        }
-
-        nav ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            border-top: 1px solid var(--border-color);
-        }
-
-        nav li {
-            padding: 5px 0;
-            font-size: 12px;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: var(--link-color);
-        }
-
-        /* メイン記事エリア */
-        .main-wrapper {
-            flex-grow: 1;
-            background-color: white;
-            border-left: 1px solid var(--border-color);
-            min-height: 100vh;
-            padding: 20px 40px;
-        }
-
-        h1 {
-            font-family: 'Times New Roman', serif;
-            font-size: 1.8rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-top: 0;
-            font-weight: normal;
-        }
-
-        .tagline {
-            font-size: 12px;
-            margin-bottom: 20px;
-        }
+        /* メインエリア */
+        .main-wrapper { flex-grow: 1; background: white; border-left: 1px solid var(--border); min-height: 100vh; padding: 20px 40px; }
+        h1 { font-family: 'Times New Roman', serif; font-size: 1.8rem; border-bottom: 1px solid var(--border); margin-top: 0; font-weight: normal; }
+        .tagline { font-size: 12px; margin-bottom: 20px; color: #555; }
 
         /* 右側インフォボックス */
-        .infobox {
-            float: right;
-            width: 260px;
-            border: 1px solid var(--border-color);
-            background-color: #f8f9fa;
-            margin-left: 20px;
-            font-size: 12px;
-        }
+        .infobox { float: right; width: 260px; border: 1px solid var(--border); background: #f8f9fa; margin-left: 20px; font-size: 12px; }
+        .infobox table { width: 100%; border-collapse: collapse; }
+        .infobox th { background: #cedff2; border: 1px solid var(--border); padding: 5px; text-align: left; }
+        .infobox td { border: 1px solid var(--border); padding: 5px; }
 
-        .infobox table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .infobox th {
-            background-color: #cedff2;
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            text-align: left;
-        }
-
-        .infobox td {
-            border: 1px solid var(--border-color);
-            padding: 5px;
-        }
-
-        h2 {
-            border-bottom: 1px solid var(--border-color);
-            font-size: 1.5rem;
-            font-weight: normal;
-            margin-top: 30px;
-        }
-
-        .content-body {
-            text-align: justify;
-        }
+        h2 { border-bottom: 1px solid var(--border); font-size: 1.5rem; font-weight: normal; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -120,63 +35,78 @@
 <nav>
     <div class="logo">Juxlyep</div>
     <ul>
-        <li><a href="#">メインページ</a></li>
-        <li><a href="#">最近の更新</a></li>
-        <li><a href="#">おまかせ表示</a></li>
+        <li><a href="#メインページ">メインページ</a></li>
+        <li><a href="#最近の更新">最近の更新</a></li>
+        <li><a href="#ヘルプ">ヘルプ</a></li>
     </ul>
 </nav>
 
-<div class="main-wrapper" id="app">
-    <!-- JavaScriptによる動的描画エリア -->
+<div class="main-wrapper">
+    <div id="content-area">
+        <!-- 初期表示用の構造（読み込みが完了するとここが書き換わります） -->
+        <h1 id="page-title">メインページ</h1>
+        <p class="tagline">出典: フリー百科事典『Juxlyep』</p>
+        <div id="page-body">読み込み中...</div>
+    </div>
 </div>
 
 <script>
-    // 取得した記事データの流し込み用オブジェクト
-    const pageData = {
-        title: "記事のタイトル",
-        summary: "ここに記事の導入文を入力します。",
-        infobox: [
-            { label: "項目1", value: "内容1" },
-            { label: "項目2", value: "内容2" }
-        ],
-        sections: [
-            { heading: "概要", text: "ここに概要の文章を入力します。" },
-            { heading: "歴史", text: "ここに歴史の文章を入力します。" }
-        ]
-    };
+    // --- Supabase接続設定 ---
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function renderPage(data) {
-        const app = document.getElementById('app');
+    /**
+     * 記事取得・表示
+     */
+    async function loadArticle() {
+        // URLのハッシュ（#以降）からタイトルを取得。なければ 'メインページ'
+        const title = decodeURIComponent(location.hash.replace('#', '')) || 'メインページ';
         
-        let infoboxHtml = `
-            <div class="infobox">
-                <table>
-                    <tr><th colspan="2" style="text-align:center;">基本情報</th></tr>
-                    ${data.infobox.map(item => `
-                        <tr><th>${item.label}</th><td>${item.value}</td></tr>
-                    `).join('')}
-                </table>
-            </div>
-        `;
+        const titleEl = document.getElementById('page-title');
+        const bodyEl = document.getElementById('page-body');
 
-        let sectionsHtml = data.sections.map(sec => `
-            <h2>${sec.heading}</h2>
-            <p>${sec.text}</p>
-        `).join('');
+        titleEl.textContent = title;
+        bodyEl.innerHTML = '読み込み中...';
 
-        app.innerHTML = `
-            <h1>${data.title}</h1>
-            <p class="tagline">出典: フリー百科事典『Juxlyep』</p>
-            ${infoboxHtml}
-            <div class="content-body">
-                <p><b>${data.title}</b>は、${data.summary}</p>
-                ${sectionsHtml}
-            </div>
+        const { data, error } = await supabase
+            .from('articles')
+            .select('*')
+            .eq('title', title)
+            .single();
+
+        if (error || !data) {
+            bodyEl.innerHTML = `<p>記事「${title}」はまだ存在しません。</p>`;
+            return;
+        }
+
+        // インフォボックス生成
+        let infoHtml = '';
+        if (data.infobox_data) {
+            infoHtml = `<div class="infobox"><table><tr><th colspan="2" style="text-align:center;">基本情報</th></tr>`;
+            for (const [key, val] of Object.entries(data.infobox_data)) {
+                infoHtml += `<tr><th>${key}</th><td>${val}</td></tr>`;
+            }
+            infoHtml += `</table></div>`;
+        }
+
+        // セクション生成
+        let sectionsHtml = '';
+        if (data.sections) {
+            sectionsHtml = data.sections.map(s => `<h2>${s.heading}</h2><p>${s.content}</p>`).join('');
+        }
+
+        bodyEl.innerHTML = `
+            ${infoHtml}
+            <p><b>${data.title}</b>は、${data.summary}</p>
+            ${sectionsHtml}
         `;
     }
 
-    // 初期描画
-    renderPage(pageData);
+    // ハッシュが変わる（リンククリック）たびに読み込み
+    window.addEventListener('hashchange', loadArticle);
+    // 初回実行
+    loadArticle();
 </script>
 
 </body>
