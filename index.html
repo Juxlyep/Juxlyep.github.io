@@ -2,99 +2,192 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Juxlyep</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juxlyep - 自由な百科事典</title>
+    <!-- ライブラリ: Supabase, Marked(Markdown変換), DOMPurify(セキュリティ) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
     <style>
-        :root { --link: #0645ad; --border: #a2a9b1; --bg: #f6f6f6; }
-        body { margin: 0; font-family: sans-serif; font-size: 14px; background: var(--bg); display: flex; }
-        nav { width: 160px; padding: 15px; flex-shrink: 0; }
-        .logo { font-family: serif; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
-        nav ul { list-style: none; padding: 0; border-top: 1px solid var(--border); }
-        nav a { text-decoration: none; color: var(--link); font-size: 12px; display: block; padding: 5px 0; cursor: pointer; }
-        .main-wrapper { flex-grow: 1; background: white; border-left: 1px solid var(--border); min-height: 100vh; padding: 20px 40px; position: relative; }
-        h1 { font-family: serif; font-size: 1.8rem; border-bottom: 1px solid var(--border); font-weight: normal; margin-top: 0; }
-        .edit-btn { position: absolute; top: 20px; right: 40px; background: #eee; border: 1px solid var(--border); padding: 5px 10px; cursor: pointer; border-radius: 2px; }
-        .edit-btn:hover { background: #ddd; }
-        textarea { width: 100%; height: 300px; margin-top: 10px; font-family: monospace; border: 1px solid var(--border); padding: 10px; }
-        .save-btn { background: #36c; color: white; border: none; padding: 10px 20px; cursor: pointer; margin-top: 10px; border-radius: 2px; }
-        #display-area, #edit-area { display: none; }
-        .active { display: block !important; }
+        :root {
+            --link: #0645ad;
+            --link-new: #ba0000;
+            --border: #a2a9b1;
+            --bg-body: #f6f6f6;
+            --bg-content: #ffffff;
+            --header-gray: #54595d;
+        }
+
+        body { margin: 0; font-family: sans-serif; background: var(--bg-body); color: #202122; line-height: 1.6; display: flex; }
+        
+        /* サイドバー */
+        aside { width: 176px; padding: 0 12px; flex-shrink: 0; }
+        .logo-box { padding: 15px 0; text-align: center; font-family: serif; font-size: 28px; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        .logo-box a { text-decoration: none; color: inherit; }
+        aside ul { list-style: none; padding: 0; margin: 0; }
+        aside li { padding: 4px 0; font-size: 13px; }
+        aside a { text-decoration: none; color: var(--link); cursor: pointer; }
+        aside a:hover { text-decoration: underline; }
+
+        /* メインエリア */
+        main { flex-grow: 1; background: var(--bg-content); border-left: 1px solid var(--border); min-height: 100vh; padding: 1.25em 2.5em; position: relative; }
+        
+        /* 上部タブ・ツール */
+        .tabs { position: absolute; top: 0; right: 2.5em; display: flex; gap: 1px; }
+        .tabs button { background: #f8f9fa; border: 1px solid var(--border); border-top: none; padding: 8px 15px; cursor: pointer; font-size: 13px; color: var(--link); }
+        .tabs button.active { background: white; border-bottom: none; color: #202122; font-weight: bold; }
+
+        /* コンテンツ表示 */
+        h1 { font-family: 'Linux Libertine', 'Georgia', 'Times', serif; font-size: 1.8em; margin-bottom: 0.25em; border-bottom: 1px solid var(--border); font-weight: normal; }
+        .tagline { font-size: 12px; margin-bottom: 1.5em; }
+        
+        /* Wiki内リンク風 */
+        #content a { color: var(--link); text-decoration: none; }
+        #content a:hover { text-decoration: underline; }
+
+        /* 目次 (TOC) */
+        .toc { border: 1px solid var(--border); background: #f8f9fa; padding: 10px; display: inline-block; margin: 15px 0; min-width: 200px; }
+        .toc-title { font-weight: bold; text-align: center; margin-bottom: 5px; }
+        .toc ul { list-style: none; padding-left: 20px; margin: 0; }
+
+        /* エディタ */
+        #editor-container { display: none; flex-direction: column; gap: 10px; }
+        #editor { width: 100%; height: 60vh; font-family: monospace; font-size: 14px; padding: 10px; border: 1px solid var(--border); resize: vertical; }
+        .controls { display: flex; gap: 10px; margin-top: 10px; }
+        .save-btn { background: #36c; color: white; border: 1px solid #36c; padding: 8px 20px; cursor: pointer; font-weight: bold; }
+        .save-btn:hover { background: #447ff5; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; border-bottom: 1px solid var(--border); }
+            main { padding: 1em; }
+        }
     </style>
 </head>
 <body>
 
-<nav>
-    <div class="logo">Juxlyep</div>
+<aside>
+    <div class="logo-box"><a href="#メインページ">Juxlyep</a></div>
     <ul>
-        <li><a onclick="location.hash='#メインページ'">メインページ</a></li>
-        <li><a onclick="const p=prompt('記事名を入力'); if(p) location.hash='#'+p">新規記事作成</a></li>
+        <li><b>案内</b></li>
+        <li><a href="#メインページ">メインページ</a></li>
+        <li><a href="#コミュニティ">コミュニティ</a></li>
+        <li><a onclick="createPage()">新規記事作成</a></li>
+        <li><a href="#ヘルプ">ヘルプ</a></li>
     </ul>
-</nav>
+</aside>
 
-<div class="main-wrapper">
-    <button class="edit-btn" id="edit-toggle">編集</button>
+<main>
+    <div class="tabs">
+        <button id="tab-view" class="active" onclick="toggleMode('view')">閲覧</button>
+        <button id="tab-edit" onclick="toggleMode('edit')">編集</button>
+    </div>
 
-    <!-- 表示モード -->
-    <div id="display-area" class="active">
+    <div id="view-area">
         <h1 id="page-title">メインページ</h1>
-        <div id="page-body"></div>
+        <p class="tagline">出典: フリー百科事典『Juxlyep』</p>
+        <div id="content">読み込み中...</div>
     </div>
 
-    <!-- 編集モード -->
-    <div id="edit-area">
-        <h1 id="edit-title">記事の編集</h1>
-        <textarea id="editor" placeholder="記事の内容を入力してください..."></textarea>
-        <button class="save-btn" onclick="saveData()">保存する</button>
-        <button onclick="toggleMode(false)">キャンセル</button>
+    <div id="editor-container">
+        <h1 id="edit-title">編集: メインページ</h1>
+        <p class="tagline">マークダウン形式で記述できます。</p>
+        <textarea id="editor"></textarea>
+        <div class="controls">
+            <button class="save-btn" onclick="savePage()">変更を保存</button>
+            <button onclick="toggleMode('view')">キャンセル</button>
+        </div>
     </div>
-</div>
+</main>
 
 <script>
+    // 接続設定
     const S_URL = 'https://fuubwstlnpdxsjywxcqx.supabase.co';
     const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1dWJ3c3RsbmRwZHhzanl3eGNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzEwMzEsImV4cCI6MjA5NDMwNzAzMX0.47ck77pxTUzU4jvkMF8wiaxw-CRSRGEsB0ZC1w18dzs';
     const sb = window.supabase.createClient(S_URL, S_KEY);
 
-    let currentTitle = "";
+    let currentPage = "";
 
-    async function load() {
-        currentTitle = decodeURIComponent(location.hash.replace('#', '')) || 'メインページ';
-        document.getElementById('page-title').textContent = currentTitle;
-        toggleMode(false);
+    // ページ読み込み
+    async function init() {
+        currentPage = decodeURIComponent(location.hash.replace('#', '')) || 'メインページ';
+        document.getElementById('page-title').textContent = currentPage;
+        document.getElementById('edit-title').textContent = '編集: ' + currentPage;
+        
+        toggleMode('view');
+        document.getElementById('content').innerHTML = "読み込み中...";
 
-        const { data, error } = await sb.from('articles').select('*').eq('title', currentTitle).single();
+        const { data, error } = await sb.from('articles').select('*').eq('title', currentPage).single();
 
         if (data) {
-            document.getElementById('page-body').innerHTML = `<p>${data.summary}</p>`;
+            renderMarkdown(data.summary);
             document.getElementById('editor').value = data.summary;
         } else {
-            document.getElementById('page-body').innerHTML = `<p>記事「${currentTitle}」は存在しません。「編集」ボタンから作成してください。</p>`;
+            document.getElementById('content').innerHTML = `<p>現在、この記事には本文がありません。<a onclick="toggleMode('edit')">編集ボタン</a>から作成してください。</p>`;
             document.getElementById('editor').value = "";
         }
     }
 
-    async function saveData() {
-        const content = document.getElementById('editor').value;
+    // Markdownレンダリング & 目次生成
+    function renderMarkdown(rawText) {
+        // 目次の自動生成ロジック
+        const tokens = marked.lexer(rawText);
+        let toc = '<div class="toc"><div class="toc-title">目次</div><ul>';
+        let hasHeaders = false;
+
+        tokens.forEach(token => {
+            if (token.type === 'heading' && token.depth <= 3) {
+                const id = encodeURIComponent(token.text);
+                toc += `<li><a href="#${currentPage}-${id}">${token.text}</a></li>`;
+                hasHeaders = true;
+            }
+        });
+        toc += '</ul></div>';
+
+        // 本文の変換
+        let html = marked.parse(rawText);
+        const cleanHtml = DOMPurify.sanitize(html);
+        
+        document.getElementById('content').innerHTML = (hasHeaders ? toc : '') + cleanHtml;
+    }
+
+    // 保存
+    async function savePage() {
+        const text = document.getElementById('editor').value;
+        const btn = document.querySelector('.save-btn');
+        btn.disabled = true;
+        btn.textContent = "保存中...";
+
         const { error } = await sb.from('articles').upsert(
-            { title: currentTitle, summary: content },
+            { title: currentPage, summary: text },
             { onConflict: 'title' }
         );
 
         if (error) {
-            alert('保存に失敗しました。RLS（アクセス権限）の設定を確認してください。\n' + error.message);
+            alert("保存エラー: " + error.message);
         } else {
-            alert('保存しました！');
-            load();
+            init();
         }
+        btn.disabled = false;
+        btn.textContent = "変更を保存";
     }
 
-    function toggleMode(isEdit) {
-        document.getElementById('display-area').classList.toggle('active', !isEdit);
-        document.getElementById('edit-area').classList.toggle('active', isEdit);
+    // モード切替
+    function toggleMode(mode) {
+        const isEdit = (mode === 'edit');
+        document.getElementById('view-area').style.display = isEdit ? 'none' : 'block';
+        document.getElementById('editor-container').style.display = isEdit ? 'flex' : 'none';
+        document.getElementById('tab-view').classList.toggle('active', !isEdit);
+        document.getElementById('tab-edit').classList.toggle('active', isEdit);
     }
 
-    document.getElementById('edit-toggle').onclick = () => toggleMode(true);
-    window.onhashchange = load;
-    load();
+    function createPage() {
+        const p = prompt("新しい記事のタイトル:");
+        if (p) location.hash = "#" + p;
+    }
+
+    window.onhashchange = init;
+    init();
 </script>
 </body>
 </html>
