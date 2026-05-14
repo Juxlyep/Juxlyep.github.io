@@ -51,10 +51,11 @@
 </div>
 
 <script>
-    // --- Supabase接続設定 ---
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --// --- Supabase接続設定 ---
+const SUPABASE_URL = 'https://fuubwstlnpdxsjywxcqx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1dWJ3c3RsbmRwZHhzanl3eGNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzEwMzEsImV4cCI6MjA5NDMwNzAzMX0.47ck77pxTUzU4jvkMF8wiaxw-CRSRGEsB0ZC1w18dzs';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     /**
      * 記事取得・表示
