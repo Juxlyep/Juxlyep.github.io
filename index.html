@@ -2,26 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juxlyep</title>
-    <!-- 読み込みブロック回避のため、 crossorigin 属性を追加 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --link: #0645ad; --border: #a2a9b1; --bg: #f6f6f6; }
-        body { margin: 0; font-family: sans-serif; font-size: 14px; line-height: 1.6; background: var(--bg); display: flex; }
-        nav { width: 160px; padding: 15px; flex-shrink: 0; }
-        .logo { font-family: serif; font-size: 26px; font-weight: bold; text-align: center; margin-bottom: 20px; }
-        nav ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border); }
-        nav li { padding: 5px 0; font-size: 12px; }
-        nav a { text-decoration: none; color: var(--link); cursor: pointer; }
+        body { margin: 0; font-family: sans-serif; font-size: 14px; background: var(--bg); display: flex; }
+        nav { width: 160px; padding: 15px; }
+        .logo { font-family: serif; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        nav ul { list-style: none; padding: 0; border-top: 1px solid var(--border); }
+        nav a { text-decoration: none; color: var(--link); font-size: 12px; cursor: pointer; }
         .main-wrapper { flex-grow: 1; background: white; border-left: 1px solid var(--border); min-height: 100vh; padding: 20px 40px; }
-        h1 { font-family: 'Times New Roman', serif; font-size: 1.8rem; border-bottom: 1px solid var(--border); margin-top: 0; font-weight: normal; }
-        .tagline { font-size: 12px; margin-bottom: 20px; color: #555; }
+        h1 { font-family: serif; font-size: 1.8rem; border-bottom: 1px solid var(--border); font-weight: normal; }
         .infobox { float: right; width: 260px; border: 1px solid var(--border); background: #f8f9fa; margin-left: 20px; font-size: 12px; }
-        .infobox table { width: 100%; border-collapse: collapse; }
         .infobox th { background: #cedff2; border: 1px solid var(--border); padding: 5px; text-align: left; }
         .infobox td { border: 1px solid var(--border); padding: 5px; }
-        h2 { border-bottom: 1px solid var(--border); font-size: 1.5rem; font-weight: normal; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -30,37 +24,25 @@
     <div class="logo">Juxlyep</div>
     <ul>
         <li><a href="#メインページ">メインページ</a></li>
-        <li><a href="#最近の更新">最近の更新</a></li>
     </ul>
 </nav>
 
 <div class="main-wrapper">
-    <div id="content-area">
-        <h1 id="page-title">メインページ</h1>
-        <p class="tagline">出典: フリー百科事典『Juxlyep』</p>
-        <div id="page-body">読み込み中...</div>
-    </div>
+    <h1 id="page-title">メインページ</h1>
+    <div id="page-body">読み込み中...</div>
 </div>
 
 <script>
+    // キーから逆算した確定URL
     const S_URL = 'https://fuubwstlnpdxsjywxcqx.supabase.co';
     const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1dWJ3c3RsbmRwZHhzanl3eGNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzEwMzEsImV4cCI6MjA5NDMwNzAzMX0.47ck77pxTUzU4jvkMF8wiaxw-CRSRGEsB0ZC1w18dzs';
     
-    // 変数名の重複を避けるため初期化チェックを入れる
-    let sbClient;
-    try {
-        sbClient = window.supabase.createClient(S_URL, S_KEY);
-    } catch (e) {
-        console.error("Supabaseの初期化に失敗:", e);
-    }
+    const sbClient = window.supabase.createClient(S_URL, S_KEY);
 
     async function loadArticle() {
         const title = decodeURIComponent(location.hash.replace('#', '')) || 'メインページ';
-        const titleEl = document.getElementById('page-title');
+        document.getElementById('page-title').textContent = title;
         const bodyEl = document.getElementById('page-body');
-
-        titleEl.textContent = title;
-        bodyEl.innerHTML = '読み込み中...';
 
         const { data, error } = await sbClient
             .from('articles')
@@ -75,18 +57,10 @@
 
         let infoHtml = '';
         if (data.infobox_data) {
-            infoHtml = `<div class="infobox"><table><tr><th colspan="2" style="text-align:center;">基本情報</th></tr>`;
-            for (const [key, val] of Object.entries(data.infobox_data)) {
-                infoHtml += `<tr><th>${key}</th><td>${val}</td></tr>`;
-            }
-            infoHtml += `</table></div>`;
+            infoHtml = `<div class="infobox"><table>${Object.entries(data.infobox_data).map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}</table></div>`;
         }
 
-        let sectionsHtml = '';
-        if (data.sections) {
-            sectionsHtml = data.sections.map(s => `<h2>${s.heading}</h2><p>${s.content}</p>`).join('');
-        }
-
+        let sectionsHtml = (data.sections || []).map(s => `<h2>${s.heading}</h2><p>${s.content}</p>`).join('');
         bodyEl.innerHTML = `${infoHtml}<p><b>${data.title}</b>は、${data.summary}</p>${sectionsHtml}`;
     }
 
