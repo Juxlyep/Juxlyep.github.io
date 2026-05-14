@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Juxlyep - 自由な百科事典</title>
+    <title>Juxlyep</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --link: #0645ad; --border: #a2a9b1; --bg: #f6f6f6; }
@@ -10,13 +10,17 @@
         nav { width: 160px; padding: 15px; flex-shrink: 0; }
         .logo { font-family: serif; font-size: 26px; font-weight: bold; margin-bottom: 20px; text-align: center; }
         nav ul { list-style: none; padding: 0; border-top: 1px solid var(--border); }
-        nav li { padding: 5px 0; border-bottom: 1px solid #e8e8e8; }
-        nav a { text-decoration: none; color: var(--link); font-size: 12px; }
+        nav a { text-decoration: none; color: var(--link); font-size: 12px; display: block; padding: 5px 0; }
         
         .main-wrapper { flex-grow: 1; background: white; border-left: 1px solid var(--border); min-height: 100vh; padding: 20px 40px; }
-        .content-section { display: none; } /* 基本は非表示 */
-        .content-section:target, .active { display: block; } /* ターゲットまたはactiveクラスで表示 */
-        
+        /* 表示制御：ID指定されたもの以外は隠す */
+        .content-section { display: none; }
+        .content-section:target { display: block; }
+        /* 初期表示（#なし）の時だけメインページを表示 */
+        #メインページ:not(:target) { display: block; }
+        /* 他がtargetの時はメインページを隠す */
+        :target ~ #メインページ { display: none; }
+
         h1 { font-family: serif; font-size: 1.8rem; border-bottom: 1px solid var(--border); font-weight: normal; margin-top: 0; }
         .infobox { float: right; width: 260px; border: 1px solid var(--border); background: #f8f9fa; margin-left: 20px; font-size: 12px; }
         .infobox th { background: #cedff2; border: 1px solid var(--border); padding: 5px; text-align: left; }
@@ -35,67 +39,60 @@
 </nav>
 
 <div class="main-wrapper">
-    <!-- メインページ -->
-    <div id="メインページ" class="content-section active">
+    <!-- 固定コンテンツ（HTML直書き） -->
+    <article id="メインページ" class="content-section">
         <h1>メインページ</h1>
-        <div class="infobox"><table><tr><th>状態</th><td>オンライン</td></tr></table></div>
-        <p><b>Juxlyep</b>へようこそ。</p>
-    </div>
+        <div class="infobox"><table><tr><th>状態</th><td>稼働中</td></tr></table></div>
+        <p><b>Juxlyep</b>へようこそ。自由な百科事典です。</p>
+    </article>
 
-    <!-- コミュニティ -->
-    <div id="コミュニティ" class="content-section">
+    <article id="コミュニティ" class="content-section">
         <h1>コミュニティ</h1>
         <p>議論や交流の場です。</p>
-    </div>
+    </article>
 
-    <!-- ヘルプ -->
-    <div id="ヘルプ" class="content-section">
+    <article id="ヘルプ" class="content-section">
         <h1>ヘルプ</h1>
         <p>使い方のガイドです。</p>
-    </div>
+    </article>
 
-    <!-- DBから取得した動的記事用の枠 -->
-    <div id="dynamic-content" class="content-section">
+    <!-- DBから読み込む時用の器 -->
+    <article id="dynamic" class="content-section">
         <h1 id="dyn-title"></h1>
         <div id="dyn-body"></div>
-    </div>
+    </article>
 </div>
 
 <script>
     const S_URL = 'https://fuubwstlnpdxsjywxcqx.supabase.co';
     const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1dWJ3c3RsbmRwZHhzanl3eGNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzEwMzEsImV4cCI6MjA5NDMwNzAzMX0.47ck77pxTUzU4jvkMF8wiaxw-CRSRGEsB0ZC1w18dzs';
-    const sbClient = window.supabase.createClient(S_URL, S_KEY);
+    const sb = window.supabase.createClient(S_URL, S_KEY);
 
-    async function router() {
-        const hash = decodeURIComponent(location.hash.replace('#', '')) || 'メインページ';
+    async function load() {
+        const hash = decodeURIComponent(location.hash.replace('#', ''));
+        if (!hash || ['メインページ', 'コミュニティ', 'ヘルプ'].includes(hash)) return;
+
+        // 固定ページ以外の時だけDBを叩く
+        const dyn = document.getElementById('dynamic');
+        const title = document.getElementById('dyn-title');
+        const body = document.getElementById('dyn-body');
         
-        // 全セクションを一旦非表示
-        document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-        
-        const targetEl = document.getElementById(hash);
-        
-        if (targetEl) {
-            // HTML内にIDが存在する場合（固定ページ）
-            targetEl.classList.add('active');
+        // CSSの:targetに任せられない動的遷移のため強制表示
+        document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
+        dyn.style.display = 'block';
+        title.textContent = hash;
+        body.innerHTML = '読み込み中...';
+
+        const { data } = await sb.from('articles').select('*').eq('title', hash).single();
+        if (data) {
+            body.innerHTML = `<p>${data.summary}</p>`;
         } else {
-            // HTMLにない場合、Supabaseから記事を探す
-            const dynSection = document.getElementById('dynamic-content');
-            dynSection.classList.add('active');
-            document.getElementById('dyn-title').textContent = hash;
-            document.getElementById('dyn-body').innerHTML = '読み込み中...';
-
-            const { data, error } = await sbClient.from('articles').select('*').eq('title', hash).single();
-
-            if (data) {
-                document.getElementById('dyn-body').innerHTML = `<p>${data.summary}</p>`; // 簡易表示
-            } else {
-                document.getElementById('dyn-body').innerHTML = `<p>記事がありません。</p>`;
-            }
+            body.innerHTML = `<p>記事「${hash}」は存在しません。</p>`;
         }
     }
 
-    window.addEventListener('hashchange', router);
-    router();
+    window.onhashchange = load;
+    load();
 </script>
 </body>
 </html>
